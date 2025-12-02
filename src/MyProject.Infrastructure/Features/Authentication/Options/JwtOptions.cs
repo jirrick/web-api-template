@@ -25,12 +25,6 @@ public sealed class JwtOptions
     
     public sealed class RefreshTokenOptions
     {
-        [Required]
-        public string ProviderName { get; [UsedImplicitly] init; } = "RefreshTokenProvider";
-
-        [Required]
-        public string Purpose { get; [UsedImplicitly] init; } = "RefreshToken";
-
         [Range(1, 365)]
         public int ExpiresInDays { get; [UsedImplicitly] init; } = 7;
     }

@@ -18,15 +18,7 @@ public interface ITokenProvider
     /// <summary>
     /// Generates a refresh token.
     /// </summary>
-    /// <param name="user">The user for whom to generate the refresh token.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A string representing the generated refresh token.</returns>
-    Task<string> GenerateRefreshToken(ApplicationUser user, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Decrypts the token metadata.
-    /// </summary>
-    /// <param name="cipherText">The Base64 encoded encrypted string to decrypt.</param>
-    /// <returns>The plaintext token metadata.</returns>
-    Task<string> DecryptRefreshTokenAsync(string cipherText);
+    string GenerateRefreshToken();
 }
+

@@ -47,46 +47,9 @@ public class JwtTokenProvider(
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public async Task<string> GenerateRefreshToken(ApplicationUser user, CancellationToken cancellationToken = default)
+    public string GenerateRefreshToken()
     {
-        var expires = timeProvider.GetUtcNow().UtcDateTime.AddDays(_jwtOptions.RefreshToken.ExpiresInDays);
-
-        var secureToken = GenerateSecureToken(32);
-        var base64Token = Convert.ToBase64String(secureToken);
-
-        var tokenMetadata = new RefreshTokenMetadata
-        {
-            TokenValue = base64Token,
-            ExpirationTime = expires,
-            UserId = user.Id,
-            SecurityStamp = user.SecurityStamp
-        };
-
-        var encryptedToken = EncryptTokenMetadata(tokenMetadata.ToString());
-
-        await userManager.SetAuthenticationTokenAsync(
-            user: user,
-            loginProvider: _jwtOptions.RefreshToken.ProviderName,
-            tokenName: _jwtOptions.RefreshToken.Purpose,
-            tokenValue: encryptedToken);
-
-        return encryptedToken;
-    }
-
-    public async Task<string> DecryptRefreshTokenAsync(string cipherText)
-    {
-        var buffer = Convert.FromBase64String(cipherText);
-
-        using var aes = Aes.Create();
-        aes.Key = GetEncryptionKey();
-        aes.IV = GetEncryptionIV();
-
-        using var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
-        using var memoryStream = new MemoryStream(buffer);
-        await using var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read);
-        using var streamReader = new StreamReader(cryptoStream);
-
-        return await streamReader.ReadToEndAsync();
+        return Convert.ToBase64String(GenerateSecureToken(32));
     }
 
     private static byte[] GenerateSecureToken(int length)
@@ -96,57 +59,5 @@ public class JwtTokenProvider(
         rng.GetBytes(randomBytes);
 
         return randomBytes;
-    }
-
-    /// <summary>
-    /// Encrypts the token metadata using AES encryption.
-    /// </summary>
-    /// <param name="plainText">The plaintext token metadata to encrypt.</param>
-    /// <returns>A Base64 encoded encrypted string.</returns>
-    private string EncryptTokenMetadata(string plainText)
-    {
-        using var aes = Aes.Create();
-        aes.Key = GetEncryptionKey();
-        aes.IV = GetEncryptionIV();
-
-        using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-        using var memoryStream = new MemoryStream();
-        using var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write);
-        using (var streamWriter = new StreamWriter(cryptoStream))
-        {
-            streamWriter.Write(plainText);
-        }
-
-        return Convert.ToBase64String(memoryStream.ToArray());
-    }
-
-    /// <summary>
-    /// Derives an encryption key from the JWT signing key.
-    /// </summary>
-    /// <returns>A byte array representing the encryption key.</returns>
-    private byte[] GetEncryptionKey()
-    {
-        using var deriveBytes = new Rfc2898DeriveBytes(
-            _jwtOptions.Key,
-            salt: "RefreshTokenSalt"u8.ToArray(),
-            iterations: 10_000,
-            HashAlgorithmName.SHA256);
-
-        return deriveBytes.GetBytes(32); // 256 bits key for AES-256
-    }
-
-    /// <summary>
-    /// Gets a fixed initialization vector for AES encryption.
-    /// </summary>
-    /// <returns>A byte array representing the initialization vector.</returns>
-    private byte[] GetEncryptionIV()
-    {
-        using var deriveBytes = new Rfc2898DeriveBytes(
-            _jwtOptions.Key,
-            salt: "RefreshTokenIV"u8.ToArray(),
-            iterations: 10_000,
-            HashAlgorithmName.SHA256);
-
-        return deriveBytes.GetBytes(16); // 128 bits IV for AES
     }
 }

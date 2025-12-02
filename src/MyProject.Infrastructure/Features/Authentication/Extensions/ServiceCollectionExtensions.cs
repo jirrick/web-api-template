@@ -29,9 +29,6 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection ConfigureIdentity<TContext>(this IServiceCollection services,
         IConfiguration configuration) where TContext : DbContext
     {
-        // Register custom refresh token provider
-        services.AddTransient<CustomRefreshTokenProvider>();
-
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
 
         services.AddIdentity<ApplicationUser, ApplicationRole>(opt =>
@@ -49,13 +46,6 @@ public static class ServiceCollectionExtensions
             })
             .AddEntityFrameworkStores<TContext>()
             .AddDefaultTokenProviders();
-
-        // Configure the provider with identity options
-        services.Configure<IdentityOptions>(options =>
-        {
-            options.Tokens.ProviderMap.Add(jwtOptions.RefreshToken.ProviderName,
-                new TokenProviderDescriptor(typeof(CustomRefreshTokenProvider)));
-        });
 
         return services;
     }

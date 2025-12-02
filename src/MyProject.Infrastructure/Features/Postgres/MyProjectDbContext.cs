@@ -8,7 +8,7 @@ namespace MyProject.Infrastructure.Features.Postgres;
 public class MyProjectDbContext(DbContextOptions options)
     : IdentityDbContext<ApplicationUser, ApplicationRole, string>(options)
 {
-    // ToDo: Add DbSet<TEntity> properties for your entities
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
