@@ -28,9 +28,7 @@ internal class JwtTokenProvider(
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            // Add the security stamp to verify token validity during refresh
-            new(_jwtOptions.SecurityStampClaimType, user.SecurityStamp ?? string.Empty)
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var userRoles = await userManager.GetRolesAsync(user);

@@ -34,9 +34,6 @@ public static class ServiceCollectionExtensions
             {
                 var connectionString = configuration.GetConnectionString("Database");
                 opt.UseNpgsql(connectionString);
-                var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-                var logger = loggerFactory.CreateLogger<MyProjectDbContext>();
-                logger.LogInformation("Opening database connection: {connectionString}", connectionString);
             });
             return services;
         }
