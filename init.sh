@@ -128,11 +128,9 @@ if [[ "$MIGRATION_CONFIRM" == "y" || "$MIGRATION_CONFIRM" == "Y" ]]; then
 
     echo "Building project and adding Initial migration..."
     
-    # Check if dotnet ef is installed
-    if ! dotnet tool list -g | grep -q "dotnet-ef"; then
-        echo "dotnet-ef tool not found. Installing globally..."
-        dotnet tool install --global dotnet-ef || echo "Failed to install dotnet-ef. Please install it manually."
-    fi
+    # Restore local tools
+    echo "Restoring local tools..."
+    dotnet tool restore
 
     # Restore and build explicitly
     echo "Restoring dependencies..."

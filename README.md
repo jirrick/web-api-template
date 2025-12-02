@@ -33,7 +33,7 @@ cd web-api-template
 
 ### 2. Run the Initialization Script
 
-This template includes scripts to rename the project (from "MyProject" to your desired name) and configure ports.
+This template includes scripts to rename the project (from "MyProject" to your desired name) and configure ports. It will also restore local .NET tools (like `dotnet-ef`).
 
 **For macOS / Linux:**
 
@@ -55,7 +55,8 @@ chmod +x init.sh
     *   Database will run on `Base Port + 4` (e.g., `13004`).
 3.  Renames all files, directories, and namespaces in the solution.
 4.  Updates `docker-compose.local.yml` and configuration files with the new ports.
-5.  (Optional) Creates a fresh initial Entity Framework migration.
+5.  Restores local .NET tools (ensures `dotnet-ef` is available).
+6.  (Optional) Creates a fresh initial Entity Framework migration.
 
 ### 3. Run the Application
 
@@ -82,7 +83,11 @@ The Swagger UI can be accessed at `http://localhost:<API_PORT>/swagger` (if conf
 If you chose not to run migrations during initialization, or need to add new ones later:
 
 1.  Ensure the database container is running.
-2.  Run the following command from the root directory:
+2.  Restore local tools (if you haven't already):
+    ```bash
+    dotnet tool restore
+    ```
+3.  Run the following command from the root directory:
 
 ```bash
 dotnet ef migrations add <MigrationName> --project src/<YourProjectName>.Infrastructure --startup-project src/<YourProjectName>.WebApi --output-dir Features/Postgres/Migrations

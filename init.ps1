@@ -149,6 +149,10 @@ if ($migConfirm -eq "y" -or $migConfirm -eq "Y") {
 
     Write-Host "Building project and adding Initial migration..."
     
+    # Restore local tools
+    Write-Host "Restoring local tools..."
+    dotnet tool restore
+
     # Restore and build explicitly
     Write-Host "Restoring dependencies..."
     dotnet restore "src\$NewName.WebApi"
