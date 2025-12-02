@@ -102,8 +102,7 @@ public class AuthController(AuthenticationService authenticationService) : Contr
 
         return Ok(new MeResponse
         {
-            // ToDo: make ApplicationUser.Id a Guid later
-            Id = Guid.Parse(user.Id),
+            Id = user.Id,
             Username = user.UserName ?? string.Empty,
             Roles = roles
         });

@@ -12,11 +12,11 @@ internal static class ModelBuilderExtensions
 
         _ = builder.Entity<ApplicationUser>().ToTable(name: "Users", schema);
         _ = builder.Entity<ApplicationRole>().ToTable(name: "Roles", schema);
-        _ = builder.Entity<IdentityUserRole<string>>().ToTable(name: "UserRoles", schema);
-        _ = builder.Entity<IdentityUserClaim<string>>().ToTable(name: "UserClaims", schema);
-        _ = builder.Entity<IdentityUserLogin<string>>().ToTable(name: "UserLogins", schema);
-        _ = builder.Entity<IdentityRoleClaim<string>>().ToTable(name: "RoleClaims", schema);
-        _ = builder.Entity<IdentityUserToken<string>>().ToTable(name: "UserTokens", schema);
+        _ = builder.Entity<IdentityUserRole<Guid>>().ToTable(name: "UserRoles", schema);
+        _ = builder.Entity<IdentityUserClaim<Guid>>().ToTable(name: "UserClaims", schema);
+        _ = builder.Entity<IdentityUserLogin<Guid>>().ToTable(name: "UserLogins", schema);
+        _ = builder.Entity<IdentityRoleClaim<Guid>>().ToTable(name: "RoleClaims", schema);
+        _ = builder.Entity<IdentityUserToken<Guid>>().ToTable(name: "UserTokens", schema);
     }
 
     public static void ApplyFuzzySearch(this ModelBuilder builder) =>

@@ -76,9 +76,9 @@ public class AuthenticationService(
         DeleteCookie(CookieNames.AccessToken);
         DeleteCookie(CookieNames.RefreshToken);
 
-        if (!string.IsNullOrEmpty(userId))
+        if (userId.HasValue)
         {
-            await RevokeUserTokens(userId);
+            await RevokeUserTokens(userId.Value);
         }
     }
 
@@ -158,7 +158,7 @@ public class AuthenticationService(
         return Result.Success();
     }
 
-    private string? TryGetUserIdFromAccessToken()
+    private Guid? TryGetUserIdFromAccessToken()
     {
         if (_httpContextAccessor.HttpContext?.Request.Cookies.TryGetValue(
                 key: CookieNames.AccessToken,
@@ -177,7 +177,8 @@ public class AuthenticationService(
 
             var jwtToken = handler.ReadJwtToken(accessToken);
 
-            return jwtToken.Claims.FirstOrDefault(c => c.Type is JwtRegisteredClaimNames.Sub)?.Value;
+            var userIdString = jwtToken.Claims.FirstOrDefault(c => c.Type is JwtRegisteredClaimNames.Sub)?.Value;
+            return Guid.TryParse(userIdString, out var userId) ? userId : null;
         }
         catch
         {
@@ -185,7 +186,7 @@ public class AuthenticationService(
         }
     }
 
-    private async Task RevokeUserTokens(string userId)
+    private async Task RevokeUserTokens(Guid userId)
     {
         var tokens = await _dbContext.RefreshTokens
             .Where(rt => rt.UserId == userId && !rt.Invalidated)
@@ -198,7 +199,7 @@ public class AuthenticationService(
 
         await _dbContext.SaveChangesAsync();
 
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user != null)
         {
             await _userManager.UpdateSecurityStampAsync(user);
@@ -213,12 +214,12 @@ public class AuthenticationService(
     {
         var userId = TryGetUserIdFromAccessToken();
 
-        if (string.IsNullOrEmpty(userId))
+        if (!userId.HasValue)
         {
             return Result<ApplicationUser>.Failure("User is not authenticated.");
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.FindByIdAsync(userId.Value.ToString());
 
         if (user is null)
         {

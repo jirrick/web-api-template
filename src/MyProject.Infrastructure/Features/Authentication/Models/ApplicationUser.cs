@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 namespace MyProject.Infrastructure.Features.Authentication.Models;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class ApplicationUser : IdentityUser
+public class ApplicationUser : IdentityUser<Guid>
 {
     [MaxLength(255)]
     public string? FirstName { get; set; }
