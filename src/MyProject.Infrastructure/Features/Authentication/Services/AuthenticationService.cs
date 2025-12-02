@@ -22,6 +22,13 @@ public class AuthenticationService(
 {
     private readonly JwtOptions _jwtOptions = authenticationOptions.Value;
 
+    /// <summary>
+    /// Authenticates a user with username and password.
+    /// </summary>
+    /// <param name="username">The username.</param>
+    /// <param name="password">The password.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> Login(string username, string password, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByNameAsync(username);
@@ -68,6 +75,10 @@ public class AuthenticationService(
         return Result.Success();
     }
 
+    /// <summary>
+    /// Logs out the current user by clearing cookies and revoking tokens.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task Logout()
     {
         // Get user ID before clearing cookies
@@ -82,6 +93,12 @@ public class AuthenticationService(
         }
     }
 
+    /// <summary>
+    /// Refreshes the access token using a refresh token.
+    /// </summary>
+    /// <param name="refreshToken">The refresh token.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(refreshToken))
