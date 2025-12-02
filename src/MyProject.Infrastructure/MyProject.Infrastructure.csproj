@@ -28,8 +28,4 @@
         <InternalsVisibleTo Include="MyProject.Api.Tests"/>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Features\Postgres\Migrations\" />
-    </ItemGroup>
-
 </Project>

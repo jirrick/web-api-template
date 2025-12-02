@@ -11,9 +11,8 @@ public interface ITokenProvider
     /// Generates an access token for the specified user.
     /// </summary>
     /// <param name="user">The user for whom to generate the access token.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A string representing the generated access token.</returns>
-    Task<string> GenerateAccessToken(ApplicationUser user, CancellationToken cancellationToken = default);
+    Task<string> GenerateAccessToken(ApplicationUser user);
 
     /// <summary>
     /// Generates a refresh token.

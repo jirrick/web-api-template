@@ -4,7 +4,7 @@ using MyProject.Infrastructure.Features.Authentication.Models;
 
 namespace MyProject.Infrastructure.Features.Authentication.Configurations;
 
-public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+internal class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {

@@ -13,7 +13,9 @@ public class LoginRequest
     /// The username for authentication.
     /// </summary>
     [Required]
-    [Description("The username for authentication")]
+    [Description("The username for authentication (email)")]
+    [EmailAddress]
+    [DataType(DataType.EmailAddress)]
     public string Username { get; [UsedImplicitly] init; } = string.Empty;
 
     /// <summary>

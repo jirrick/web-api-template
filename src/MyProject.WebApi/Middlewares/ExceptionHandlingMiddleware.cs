@@ -1,34 +1,34 @@
 using System.Net;
 using System.Text.Json;
-using MyProject.Infrastructure.Features.Postgres.Exceptions;
+using MyProject.Infrastructure.Persistence.Exceptions;
 using MyProject.WebApi.Shared;
 
 namespace MyProject.WebApi.Middlewares;
 
 public class ExceptionHandlingMiddleware(
-    RequestDelegate _next,
-    ILogger<ExceptionHandlingMiddleware> _logger,
-    IHostEnvironment _env)
+    RequestDelegate next,
+    ILogger<ExceptionHandlingMiddleware> logger,
+    IHostEnvironment env)
 {
     public async Task Invoke(HttpContext context)
     {
         try
         {
-            await _next.Invoke(context);
+            await next.Invoke(context);
         }
         catch (KeyNotFoundException keyNotFoundEx)
         {
-            _logger.LogWarning(keyNotFoundEx, "A KeyNotFoundException occurred.");
+            logger.LogWarning(keyNotFoundEx, "A KeyNotFoundException occurred.");
             await HandleExceptionAsync(context, keyNotFoundEx, HttpStatusCode.NotFound);
         }
         catch (PaginationException paginationEx)
         {
-            _logger.LogWarning(paginationEx, "A PaginationException occurred.");
+            logger.LogWarning(paginationEx, "A PaginationException occurred.");
             await HandleExceptionAsync(context, paginationEx, HttpStatusCode.BadRequest);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "An unhandled exception occurred.");
+            logger.LogError(e, "An unhandled exception occurred.");
             await HandleExceptionAsync(context, e, HttpStatusCode.InternalServerError);
         }
     }
@@ -42,7 +42,7 @@ public class ExceptionHandlingMiddleware(
         var errorResponse = new ErrorResponse
         {
             Message = customMessage ?? exception.Message,
-            Details = _env.IsDevelopment() ? exception.StackTrace : null
+            Details = env.IsDevelopment() ? exception.StackTrace : null
         };
 
         var payload = JsonSerializer.Serialize(errorResponse);

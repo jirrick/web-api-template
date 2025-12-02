@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MyProject.Application.Features.Authentication;
 using MyProject.Infrastructure.Features.Authentication.Constants;
-using MyProject.Infrastructure.Features.Authentication.Services;
 using MyProject.WebApi.Features.Authentication.Dtos.Login;
 using MyProject.WebApi.Features.Authentication.Dtos.Me;
+
+using MyProject.WebApi.Features.Authentication.Dtos.Register;
 
 namespace MyProject.WebApi.Features.Authentication;
 
@@ -12,7 +14,7 @@ namespace MyProject.WebApi.Features.Authentication;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(AuthenticationService authenticationService) : ControllerBase
+public class AuthController(IAuthenticationService authenticationService) : ControllerBase
 {
     /// <summary>
     /// Authenticates a user and returns a http-only cookie with the JWT access token and a refresh token
@@ -98,13 +100,28 @@ public class AuthController(AuthenticationService authenticationService) : Contr
         }
 
         var user = userResult.Value!;
-        var roles = await authenticationService.GetUserRolesAsync(user);
+        var roles = await authenticationService.GetUserRolesAsync(user.Id);
 
         return Ok(new MeResponse
         {
             Id = user.Id,
-            Username = user.UserName ?? string.Empty,
+            Username = user.UserName,
             Roles = roles
         });
+    }
+
+    [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+    {
+        var result = await authenticationService.Register(request.ToRegisterInput());
+
+        if (!result.IsSuccess)
+        {
+            return BadRequest(result.Error);
+        }
+
+        return CreatedAtAction(nameof(Me), new { id = result.Value });
     }
 }

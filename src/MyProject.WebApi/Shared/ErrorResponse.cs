@@ -13,7 +13,7 @@ public class ErrorResponse
     /// </summary>
     [Description("The main error message")]
     public string? Message { get; init; }
-    
+
     /// <summary>
     /// Additional error details or technical information
     /// </summary>

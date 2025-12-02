@@ -7,46 +7,41 @@ using MyProject.Domain;
 using MyProject.Infrastructure.Features.Authentication.Constants;
 using MyProject.Infrastructure.Features.Authentication.Models;
 using MyProject.Infrastructure.Features.Authentication.Options;
-using MyProject.Infrastructure.Features.Postgres;
+using MyProject.Infrastructure.Persistence;
+using MyProject.Application.Features.Authentication;
+using MyProject.Application.Features.Authentication.Dtos;
 
 namespace MyProject.Infrastructure.Features.Authentication.Services;
 
-public class AuthenticationService(
-    UserManager<ApplicationUser> _userManager,
-    SignInManager<ApplicationUser> _signInManager,
-    ITokenProvider _tokenProvider,
-    TimeProvider _timeProvider,
-    IHttpContextAccessor _httpContextAccessor,
-    IOptions<JwtOptions> authenticationOptions,
-    MyProjectDbContext _dbContext)
+internal class AuthenticationService(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    ITokenProvider tokenProvider,
+    TimeProvider timeProvider,
+    IHttpContextAccessor httpContextAccessor,
+    IOptions<JwtOptions> jwtOptions,
+    MyProjectDbContext dbContext) : IAuthenticationService
 {
-    private readonly JwtOptions _jwtOptions = authenticationOptions.Value;
+    private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    /// <summary>
-    /// Authenticates a user with username and password.
-    /// </summary>
-    /// <param name="username">The username.</param>
-    /// <param name="password">The password.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> Login(string username, string password, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByNameAsync(username);
+        var user = await userManager.FindByNameAsync(username);
 
         if (user is null)
         {
             return Result.Failure("Invalid username or password.");
         }
 
-        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
+        var signInResult = await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
         if (!signInResult.Succeeded)
         {
             return Result.Failure("Invalid username or password.");
         }
 
-        var accessToken = await _tokenProvider.GenerateAccessToken(user, cancellationToken);
-        var refreshTokenString = _tokenProvider.GenerateRefreshToken();
-        var utcNow = _timeProvider.GetUtcNow();
+        var accessToken = await tokenProvider.GenerateAccessToken(user);
+        var refreshTokenString = tokenProvider.GenerateRefreshToken();
+        var utcNow = timeProvider.GetUtcNow();
 
         var refreshTokenEntity = new RefreshToken
         {
@@ -59,8 +54,8 @@ public class AuthenticationService(
             Invalidated = false
         };
 
-        _dbContext.RefreshTokens.Add(refreshTokenEntity);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.RefreshTokens.Add(refreshTokenEntity);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         SetCookie(
             cookieName: CookieNames.AccessToken,
@@ -75,10 +70,36 @@ public class AuthenticationService(
         return Result.Success();
     }
 
-    /// <summary>
-    /// Logs out the current user by clearing cookies and revoking tokens.
-    /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task<Result<Guid>> Register(RegisterInput input)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = input.Email,
+            Email = input.Email,
+            FirstName = input.FirstName,
+            LastName = input.LastName,
+            PhoneNumber = input.PhoneNumber
+        };
+
+        var result = await userManager.CreateAsync(user, input.Password);
+
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return Result<Guid>.Failure(errors);
+        }
+
+        var roleResult = await userManager.AddToRoleAsync(user, "User");
+
+        if (!roleResult.Succeeded)
+        {
+            var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+            return Result<Guid>.Failure(errors);
+        }
+
+        return Result<Guid>.Success(user.Id);
+    }
+
     public async Task Logout()
     {
         // Get user ID before clearing cookies
@@ -93,12 +114,6 @@ public class AuthenticationService(
         }
     }
 
-    /// <summary>
-    /// Refreshes the access token using a refresh token.
-    /// </summary>
-    /// <param name="refreshToken">The refresh token.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>A result indicating success or failure.</returns>
     public async Task<Result> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(refreshToken))
@@ -106,7 +121,7 @@ public class AuthenticationService(
             return Result.Failure("Refresh token is missing.");
         }
 
-        var storedToken = await _dbContext.RefreshTokens
+        var storedToken = await dbContext.RefreshTokens
             .Include(rt => rt.User)
             .FirstOrDefaultAsync(rt => rt.Token == refreshToken, cancellationToken);
 
@@ -128,10 +143,10 @@ public class AuthenticationService(
             return Result.Failure("Invalid refresh token.");
         }
 
-        if (storedToken.ExpiredAt < _timeProvider.GetUtcNow().UtcDateTime)
+        if (storedToken.ExpiredAt < timeProvider.GetUtcNow().UtcDateTime)
         {
             storedToken.Invalidated = true;
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Result.Failure("Refresh token has expired.");
         }
 
@@ -144,9 +159,9 @@ public class AuthenticationService(
             return Result.Failure("User not found.");
         }
 
-        var newAccessToken = await _tokenProvider.GenerateAccessToken(user, cancellationToken);
-        var newRefreshTokenString = _tokenProvider.GenerateRefreshToken();
-        var utcNow = _timeProvider.GetUtcNow();
+        var newAccessToken = await tokenProvider.GenerateAccessToken(user);
+        var newRefreshTokenString = tokenProvider.GenerateRefreshToken();
+        var utcNow = timeProvider.GetUtcNow();
 
         var newRefreshTokenEntity = new RefreshToken
         {
@@ -159,8 +174,8 @@ public class AuthenticationService(
             Invalidated = false
         };
 
-        _dbContext.RefreshTokens.Add(newRefreshTokenEntity);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.RefreshTokens.Add(newRefreshTokenEntity);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         SetCookie(
             cookieName: CookieNames.AccessToken,
@@ -177,7 +192,7 @@ public class AuthenticationService(
 
     private Guid? TryGetUserIdFromAccessToken()
     {
-        if (_httpContextAccessor.HttpContext?.Request.Cookies.TryGetValue(
+        if (httpContextAccessor.HttpContext?.Request.Cookies.TryGetValue(
                 key: CookieNames.AccessToken,
                 value: out var accessToken) is not true)
         {
@@ -205,7 +220,7 @@ public class AuthenticationService(
 
     private async Task RevokeUserTokens(Guid userId)
     {
-        var tokens = await _dbContext.RefreshTokens
+        var tokens = await dbContext.RefreshTokens
             .Where(rt => rt.UserId == userId && !rt.Invalidated)
             .ToListAsync();
 
@@ -214,46 +229,44 @@ public class AuthenticationService(
             token.Invalidated = true;
         }
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
-        var user = await _userManager.FindByIdAsync(userId.ToString());
+        var user = await userManager.FindByIdAsync(userId.ToString());
         if (user != null)
         {
-            await _userManager.UpdateSecurityStampAsync(user);
+            await userManager.UpdateSecurityStampAsync(user);
         }
     }
 
-    /// <summary>
-    /// Gets the current authenticated user information
-    /// </summary>
-    /// <returns>A Result containing the user if authenticated, or failure if not</returns>
-    public async Task<Result<ApplicationUser>> GetCurrentUserAsync()
+    public async Task<Result<UserOutput>> GetCurrentUserAsync()
     {
         var userId = TryGetUserIdFromAccessToken();
 
         if (!userId.HasValue)
         {
-            return Result<ApplicationUser>.Failure("User is not authenticated.");
+            return Result<UserOutput>.Failure("User is not authenticated.");
         }
 
-        var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+        var user = await userManager.FindByIdAsync(userId.Value.ToString());
 
         if (user is null)
         {
-            return Result<ApplicationUser>.Failure("User not found.");
+            return Result<UserOutput>.Failure("User not found.");
         }
 
-        return Result<ApplicationUser>.Success(user);
+        return Result<UserOutput>.Success(new UserOutput(
+            Id: user.Id,
+            UserName: user.UserName!));
     }
 
-    /// <summary>
-    /// Gets the roles for a specific user
-    /// </summary>
-    /// <param name="user">The user to get roles for</param>
-    /// <returns>A list of role names</returns>
-    public async Task<IList<string>> GetUserRolesAsync(ApplicationUser user)
+    public async Task<IList<string>> GetUserRolesAsync(Guid userId)
     {
-        return await _userManager.GetRolesAsync(user);
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return new List<string>();
+        }
+        return await userManager.GetRolesAsync(user);
     }
 
     /// <summary>
@@ -263,14 +276,14 @@ public class AuthenticationService(
     /// <param name="content">Content to be stored in the cookie</param>
     /// <param name="options">Cookie options</param>
     private void SetCookie(string cookieName, string content, CookieOptions options)
-        => _httpContextAccessor.HttpContext?.Response.Cookies.Append(key: cookieName, value: content, options: options);
+        => httpContextAccessor.HttpContext?.Response.Cookies.Append(key: cookieName, value: content, options: options);
 
     /// <summary>
     /// Deletes a specific cookie from the HTTP response
     /// </summary>
     /// <param name="cookieName">Name of the cookie to delete</param>
     private void DeleteCookie(string cookieName)
-        => _httpContextAccessor.HttpContext?.Response.Cookies.Delete(
+        => httpContextAccessor.HttpContext?.Response.Cookies.Delete(
             cookieName,
             new CookieOptions
             {

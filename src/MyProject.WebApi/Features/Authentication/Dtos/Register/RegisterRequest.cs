@@ -11,13 +11,6 @@ namespace MyProject.WebApi.Features.Authentication.Dtos.Register;
 public class RegisterRequest
 {
     /// <summary>
-    /// The username for the new account.
-    /// </summary>
-    [Required]
-    [Description("The username for the new account")]
-    public string Username { get; init; } = string.Empty;
-
-    /// <summary>
     /// The email address for the new account.
     /// </summary>
     [Required]

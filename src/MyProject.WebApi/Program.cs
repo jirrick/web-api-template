@@ -2,11 +2,9 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.HttpOverrides;
 using MyProject.Infrastructure.Features.Authentication.Extensions;
-using MyProject.Infrastructure.Features.Postgres.Extensions;
+using MyProject.Infrastructure.Persistence.Extensions;
 using MyProject.WebApi.Extensions;
 using MyProject.WebApi.Middlewares;
-using MyProject.WebApi.Features.Cors.Extensions;
-using MyProject.WebApi.Features.Cors.Options;
 using Scalar.AspNetCore;
 using Serilog;
 using LoggerConfigurationExtensions = MyProject.Infrastructure.Logging.Extensions.LoggerConfigurationExtensions;
@@ -105,7 +103,7 @@ try
     }
 
     Log.Debug("Setting UseCors");
-    IApplicationBuilderExtensions.UseCors(app);
+    CorsExtensions.UseCors(app);
 
     Log.Debug("Setting UseSerilogRequestLogging");
     app.UseSerilogRequestLogging();

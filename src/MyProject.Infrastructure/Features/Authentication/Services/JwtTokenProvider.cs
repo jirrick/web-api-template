@@ -10,17 +10,17 @@ using MyProject.Infrastructure.Features.Authentication.Options;
 
 namespace MyProject.Infrastructure.Features.Authentication.Services;
 
-public class JwtTokenProvider(
+internal class JwtTokenProvider(
     UserManager<ApplicationUser> userManager,
     IOptions<JwtOptions> jwtOptions,
     TimeProvider timeProvider) : ITokenProvider
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    public async Task<string> GenerateAccessToken(ApplicationUser user, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateAccessToken(ApplicationUser user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expires = timeProvider.GetUtcNow().UtcDateTime.AddMinutes(_jwtOptions.ExpiresInMinutes);
 
         var claims = new List<Claim>
@@ -41,7 +41,7 @@ public class JwtTokenProvider(
             _jwtOptions.Audience,
             claims,
             expires: expires,
-            signingCredentials: creds
+            signingCredentials: credentials
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);

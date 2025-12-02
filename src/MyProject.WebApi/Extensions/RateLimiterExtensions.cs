@@ -16,7 +16,8 @@ internal static class RateLimiterExtensions
 
         services.AddRateLimiter(opt =>
         {
-            var rateLimitOptions = configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()!;
+            var rateLimitOptions = configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>()
+                                      ?? throw new InvalidOperationException("Rate limiting options are not configured properly.");
 
             opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
@@ -43,7 +44,7 @@ internal static class RateLimiterExtensions
                 {
                     context.HttpContext.Response.Headers.RetryAfter = retryAfter.TotalSeconds.ToString(CultureInfo.InvariantCulture);
                     context.HttpContext.Response.Headers["X-RateLimit-Reset"] = DateTimeOffset.UtcNow.Add(retryAfter).ToUnixTimeSeconds().ToString();
-                    
+
                     var response = new ErrorResponse
                     {
                         Message = "Rate limit exceeded",

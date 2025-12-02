@@ -9,94 +9,97 @@ using MyProject.Infrastructure.Features.Authentication.Constants;
 using MyProject.Infrastructure.Features.Authentication.Models;
 using MyProject.Infrastructure.Features.Authentication.Options;
 using MyProject.Infrastructure.Features.Authentication.Services;
+using MyProject.Application.Features.Authentication;
 
 namespace MyProject.Infrastructure.Features.Authentication.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddIdentity<TContext>(this IServiceCollection services,
-        IConfiguration configuration) where TContext : DbContext
+    extension(IServiceCollection services)
     {
-        services.ConfigureIdentity<TContext>(configuration);
-        services.ConfigureJwtAuthentication(configuration);
+        public IServiceCollection AddIdentity<TContext>(IConfiguration configuration) where TContext : DbContext
+        {
+            services.ConfigureIdentity<TContext>(configuration);
+            services.ConfigureJwtAuthentication(configuration);
 
-        services.AddScoped<ITokenProvider, JwtTokenProvider>();
-        services.AddScoped<AuthenticationService>();
+            services.AddScoped<ITokenProvider, JwtTokenProvider>();
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-        return services;
-    }
+            return services;
+        }
 
-    private static IServiceCollection ConfigureIdentity<TContext>(this IServiceCollection services,
-        IConfiguration configuration) where TContext : DbContext
-    {
-        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
+        private IServiceCollection ConfigureIdentity<TContext>(IConfiguration configuration) where TContext : DbContext
+        {
+            var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
 
-        services.AddIdentity<ApplicationUser, ApplicationRole>(opt =>
-            {
-                opt.Password.RequireDigit = true;
-                opt.Password.RequireLowercase = true;
-                opt.Password.RequireUppercase = true;
-                opt.Password.RequireNonAlphanumeric = false;
-                opt.Password.RequiredLength = 6;
+            services.AddIdentity<ApplicationUser, ApplicationRole>(opt =>
+                {
+                    opt.Password.RequireDigit = true;
+                    opt.Password.RequireLowercase = true;
+                    opt.Password.RequireUppercase = true;
+                    opt.Password.RequireNonAlphanumeric = false;
+                    opt.Password.RequiredLength = 6;
 
-                opt.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
-                opt.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+                    opt.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
+                    opt.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
 
-                opt.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
+                    opt.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
+
+                opt.User.RequireUniqueEmail = true;
             })
             .AddEntityFrameworkStores<TContext>()
-            .AddDefaultTokenProviders();
+                .AddDefaultTokenProviders();
 
-        return services;
-    }
+            return services;
+        }
 
-    private static IServiceCollection ConfigureJwtAuthentication(this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        services.AddOptions<JwtOptions>()
-            .BindConfiguration(JwtOptions.SectionName)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+        private IServiceCollection ConfigureJwtAuthentication(IConfiguration configuration)
+        {
+            services.AddOptions<JwtOptions>()
+                .BindConfiguration(JwtOptions.SectionName)
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
 
-        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
-        var key = Encoding.UTF8.GetBytes(jwtOptions.Key);
+            var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()!;
+            var key = Encoding.UTF8.GetBytes(jwtOptions.Key);
 
-        services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(opt =>
-            {
-                opt.TokenValidationParameters = new TokenValidationParameters
+            services.AddAuthentication(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtOptions.Issuer,
-                    ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(key)
-                };
-
-                // Configure cookie-based token handling
-                opt.Events = new JwtBearerEvents
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(opt =>
                 {
-                    OnMessageReceived = context =>
+                    opt.TokenValidationParameters = new TokenValidationParameters
                     {
-                        if (context.Request.Cookies.TryGetValue(CookieNames.AccessToken, out var accessToken))
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidAudience = jwtOptions.Audience,
+                        IssuerSigningKey = new SymmetricSecurityKey(key)
+                    };
+
+                    // Configure cookie-based token handling
+                    opt.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
                         {
-                            context.Token = accessToken;
-                        }
+                            if (context.Request.Cookies.TryGetValue(CookieNames.AccessToken, out var accessToken))
+                            {
+                                context.Token = accessToken;
+                            }
 
-                        return Task.CompletedTask;
-                    },
-                };
+                            return Task.CompletedTask;
+                        },
+                    };
 
-                opt.SaveToken = true;
-            });
+                    opt.SaveToken = true;
+                });
 
-        return services;
+            return services;
+        }
     }
 }

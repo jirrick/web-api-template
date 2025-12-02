@@ -22,18 +22,18 @@ public static class ApplicationBuilderExtensions
             }
         }
 
-        var testUser = await userManager.FindByNameAsync("testuser");
+        var testUser = await userManager.FindByNameAsync("testuser@test.com");
         if (testUser is null)
         {
-            testUser = new ApplicationUser { UserName = "testuser", Email = "testuser@example.com", EmailConfirmed = true };
+            testUser = new ApplicationUser { UserName = "testuser@test.com", Email = "testuser@example.com", EmailConfirmed = true };
             await userManager.CreateAsync(testUser, "TestUser123!");
             await userManager.AddToRoleAsync(testUser, "USER");
         }
 
-        var adminUser = await userManager.FindByNameAsync("admin");
+        var adminUser = await userManager.FindByNameAsync("admin@test.com");
         if (adminUser is null)
         {
-            adminUser = new ApplicationUser { UserName = "admin", Email = "admin@example.com", EmailConfirmed = true };
+            adminUser = new ApplicationUser { UserName = "admin@test.com", Email = "admin@example.com", EmailConfirmed = true };
             await userManager.CreateAsync(adminUser, "AdminUser123!");
             await userManager.AddToRoleAsync(adminUser, "ADMIN");
         }
