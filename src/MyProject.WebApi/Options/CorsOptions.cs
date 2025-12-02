@@ -26,11 +26,11 @@ public class CorsOptions : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!AllowAllOrigins && (AllowedOrigins == null || AllowedOrigins.Length == 0))
+        if (!AllowAllOrigins && (AllowedOrigins.Length is 0))
         {
             yield return new ValidationResult(
                 "AllowedOrigins cannot be empty when AllowAllOrigins is false.",
-                new[] { nameof(AllowedOrigins) });
+                [nameof(AllowedOrigins)]);
         }
     }
 }
